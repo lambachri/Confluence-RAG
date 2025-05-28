@@ -1,14 +1,18 @@
+# Désactiver la télémétrie de chromadb avant toute importation
+import os
+os.environ["CHROMADB_TELEMETRY"] = "false"
+os.environ["CHROMADB_CLIENT_NAME"] = "langchain-streamlit"
+
 import sys
 import logging
 import shutil
-import os
-import requests
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import hashlib
 import json
+import requests
 
 # Fix the logging format string - replace %s with %(levelname)s
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -49,13 +53,30 @@ except ImportError:
                 CONFLUENCE_USERNAME, CONFLUENCE_API_KEY, PERSIST_DIRECTORY
             )
 
-# Le reste du code reste inchangé
-from langchain_community.document_loaders import ConfluenceLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.text_splitter import MarkdownHeaderTextSplitter
-from langchain_core.documents import Document
-# Import Chroma from langchain_chroma instead of langchain_community
-from langchain_chroma import Chroma
+# Import des modules LangChain avec gestion des erreurs
+try:
+    from langchain_community.document_loaders import ConfluenceLoader
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
+    from langchain.text_splitter import MarkdownHeaderTextSplitter
+    from langchain_core.documents import Document
+    
+    # Import Chroma avec gestion d'erreur spécifique
+    try:
+        from langchain_chroma import Chroma
+        logger.info("Module langchain_chroma importé avec succès")
+    except ImportError as e:
+        logger.error(f"Erreur lors de l'importation de langchain_chroma: {e}")
+        # Fallback à l'ancienne méthode d'importation si nécessaire
+        try:
+            from langchain_community.vectorstores import Chroma
+            logger.warning("Utilisation de la version obsolète de Chroma depuis langchain_community")
+        except ImportError:
+            logger.critical("Impossible d'importer Chroma - l'application ne fonctionnera pas correctement")
+            raise
+            
+except Exception as e:
+    logger.error(f"Erreur lors de l'importation des modules LangChain: {e}")
+    raise
 
 # Liste des IDs de pages spécifiques à charger par défaut
 DEFAULT_PAGE_IDS = [

@@ -1,12 +1,18 @@
 # Streamlit
 # Use QARetrieval to find informations about the Octo Confluence
+
+# Importer init_env en premier pour configurer l'environnement
 import os
+# Désactiver la télémétrie de chromadb avant toute autre importation
+os.environ["CHROMADB_TELEMETRY"] = "false"
+os.environ["CHROMADB_CLIENT_NAME"] = "langchain-streamlit"
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 import sys
 import time
 import importlib
 import logging
 from pathlib import Path
-# Importer streamlit_styles pour centraliser les styles CSS
 
 # Ajuster le chemin d'importation pour être compatible avec Streamlit Cloud
 current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -14,17 +20,30 @@ root_dir = current_dir.parent
 if str(root_dir) not in sys.path:
     sys.path.append(str(root_dir))
 
+# Créer une copie de config.py à la racine si nécessaire
+config_path = root_dir / "config.py"
+src_config_path = current_dir / "config.py"
+if not config_path.exists() and src_config_path.exists():
+    try:
+        import shutil
+        shutil.copy(src_config_path, config_path)
+        print(f"Copie de config.py vers la racine: {config_path}")
+    except Exception as e:
+        print(f"Erreur lors de la copie de config.py: {e}")
+
+# Importer streamlit_styles pour centraliser les styles CSS
 try:
     from streamlit_styles import load_css
 except ImportError:
-    from src.streamlit_styles import load_css
-except:
-    # Fallback si le module n'existe pas
-    def load_css():
-        return """<style>
-            .main-header {color: #1E88E5; font-size: 2.5rem}
-            .sub-header {color: #424242; font-size: 1.2rem; margin-bottom: 2rem}
-            </style>"""
+    try:
+        from src.streamlit_styles import load_css
+    except ImportError:
+        # Fallback si le module n'existe pas
+        def load_css():
+            return """<style>
+                .main-header {color: #1E88E5; font-size: 2.5rem}
+                .sub-header {color: #424242; font-size: 1.2rem; margin-bottom: 2rem}
+                </style>"""
 
 import streamlit as st
 

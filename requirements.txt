@@ -1,4 +1,4 @@
-# Dépendances principales
+# Versions compatibles pour Streamlit Cloud
 streamlit>=1.28.0
 langchain>=0.0.267
 langchain-openai>=0.0.2
@@ -6,24 +6,26 @@ langchain-community>=0.0.10
 langchain-chroma>=0.0.10
 langchain-core>=0.0.9
 openai>=1.2.0
-chromadb>=0.4.15
 
-# Dépendances pour le traitement de documents
-pypdf>=3.16.0
-Pillow>=10.0.0
-python-magic>=0.4.27
-unstructured>=0.10.19
-pdf2image>=1.16.3
-pytesseract>=0.3.10
+# Version spécifique de chromadb qui évite le problème
+chromadb==0.4.18
 
-# Pour les requêtes HTTP et le parsing
+# Fix pour les dépendances problématiques
+protobuf>=4.24.0
+grpcio>=1.59.0
+opentelemetry-api>=1.20.0
+opentelemetry-sdk>=1.20.0
+
+# Autres dépendances
+python-dotenv>=1.0.0
 requests>=2.31.0
 beautifulsoup4>=4.12.2
 markdown>=3.5
 pandas>=2.1.1
-
-# Pour gérer la connexion à Atlassian Confluence
 atlassian-python-api>=3.41.1
 
-# Pour la gestion des variables d'environnement
-python-dotenv>=1.0.0
+# Dépendances pour le traitement des documents
+pypdf>=3.16.0
+Pillow>=10.0.0
+python-magic>=0.4.27
+unstructured>=0.10.19
