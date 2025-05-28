@@ -1,5 +1,5 @@
 ###########################################
-#  requirements.txt  (build OK sur Cloud)
+#  requirements.txt  – build OK Cloud
 ###########################################
 
 streamlit==1.44.1
@@ -10,10 +10,11 @@ langchain==0.3.23
 langchain-core==0.3.55
 langchain-community==0.3.21
 langchain-openai==0.3.12
-langchain-chroma==0.2.3          # testé avec chromadb 0.6.x
+langchain-chroma==0.2.3          # s’appuie sur chromadb
 
 # Vector store
-chromadb>=0.6.3,<0.7              # version dispo sur PyPI, compatible NumPy 2
+chromadb>=0.6.3,<0.7              # compatible NumPy 2
+pysqlite3-binary==0.5.2           # sqlite 3.45+ ⇒ plus d’erreur
 
 # NumPy + data
 numpy==2.1.*
@@ -21,14 +22,14 @@ pandas==2.2.*
 scikit-learn==1.6.*
 tiktoken==0.9.0
 
-# Documents & LLM utils
+# Docs / LLM utils
 sentence-transformers==4.1.0
 transformers==4.52.1
 Pillow==11.1.0
 pypdf==5.4.0
 beautifulsoup4==4.13.3
 
-# Confluence & divers
+# Confluence + divers
 atlassian-python-api==4.0.3
 python-dotenv==1.1.*
 requests==2.32.*
