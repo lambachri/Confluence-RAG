@@ -17,8 +17,7 @@ langchain-chroma==0.2.3   # colle bien avec chromadb ≥ 0.6
 
 
 # Vector store (fix numpy 2)
-chromadb>=0.6.3,<0.7         # 0.6.3 → OK NumPy 2
-pysqlite3-binary>=0.5.4,<0.6
+chromadb>=0.6.3,<0.7
 
 ############################
 # dépendances numpy / data
@@ -53,6 +52,7 @@ opentelemetry-api==1.32.0
 opentelemetry-sdk==1.32.0
 tenacity==8.5.0
 aiohttp==3.11.*
+pysqlite3-binary>=0.5.4,<0.6
 
 ############################
 #   FIN DU FICHIER
