@@ -7,7 +7,7 @@ import logging
 import os
 import json
 import requests
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from langchain_core.documents import Document
 
 logger = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class JinaReranker:
         """
         if not self.api_key or not documents:
             logger.warning("Impossible d'utiliser JinaReranker: clé API manquante ou aucun document")
-            return documents[:top_k]
+            return documents[:top_k] if documents else []
         
         try:
             # Préparer les données pour l'API Jina
@@ -99,83 +99,24 @@ class JinaReranker:
             logger.error(f"Erreur lors du reranking avec Jina: {e}")
             return documents[:top_k]
 
-class SimpleReranker:
-    """
-    Implémentation légère d'un reranker basé sur la correspondance de mots-clés
-    Ne nécessite aucune dépendance externe
-    """
-    def __init__(self):
-        logger.info("SimpleReranker initialisé (version sans dépendances)")
-    
-    def rerank(self, query: str, documents: List[Document], top_k: int = 5) -> List[Document]:
-        """
-        Réordonne les documents en utilisant une logique simple de correspondance de mots-clés
-        
-        Args:
-            query: La requête utilisateur
-            documents: Liste des documents à réordonner
-            top_k: Nombre de documents à retourner
-            
-        Returns:
-            Liste des documents réordonnés
-        """
-        if not documents:
-            return []
-        
-        # Extraire les termes de la requête (mots de plus de 3 caractères)
-        query_terms = [term.lower() for term in query.split() if len(term) > 3]
-        
-        # Calculer les scores pour chaque document
-        scored_docs = []
-        for doc in documents:
-            score = 0.0
-            content = doc.page_content.lower()
-            
-            # Compter les occurrences de chaque terme
-            for term in query_terms:
-                term_count = content.count(term)
-                if term_count > 0:
-                    # Augmenter le score en fonction du nombre d'occurrences
-                    score += 1.0 + (0.5 * term_count)
-            
-            # Tenir compte du boost de pertinence des métadonnées
-            boost = doc.metadata.get('relevance_boost', 1.0)
-            score *= boost
-            
-            scored_docs.append((doc, score))
-        
-        # Trier les documents par score décroissant
-        scored_docs.sort(key=lambda x: x[1], reverse=True)
-        logger.info(f"SimpleReranker a réordonné {len(documents)} documents")
-        
-        return [doc for doc, _ in scored_docs[:top_k]]
-
 def create_reranker():
     """
-    Crée le reranker approprié en fonction de la configuration
+    Crée une instance du reranker Jina si possible
     
     Returns:
-        Un reranker (Jina ou Simple)
+        Un objet reranker ou None si impossible à initialiser
     """
-    use_reranker = os.environ.get("USE_RERANKER", "False").lower() == "true"
-    
-    if not use_reranker:
-        logger.info("Reranker désactivé par configuration")
+    try:
+        if not JINA_API_KEY:
+            logger.warning("Clé API Jina non configurée, reranker désactivé")
+            return None
+        
+        reranker = JinaReranker()
+        logger.info("Reranker Jina créé avec succès")
+        return reranker
+    except Exception as e:
+        logger.error(f"Erreur lors de la création du reranker Jina: {e}")
         return None
-    
-    # Essayer d'abord Jina si la clé API est disponible
-    if JINA_API_KEY:
-        try:
-            logger.info("Initialisation du JinaReranker")
-            return JinaReranker()
-        except Exception as e:
-            logger.error(f"Erreur lors de l'initialisation du JinaReranker: {e}")
-    else:
-        logger.warning("Clé API Jina non configurée")
-    
-    # Utiliser SimpleReranker comme solution de repli
-    logger.info("Utilisation du SimpleReranker comme solution de repli")
-    return SimpleReranker()
 
 # Pour tester le module directement
 if __name__ == "__main__":

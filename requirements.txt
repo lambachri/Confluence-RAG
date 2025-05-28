@@ -1,28 +1,29 @@
-langchain
-openai
-tabulate
-python-environ
-notebook
-kaggle
-yt_dlp
-ffmpeg
-tiktoken
-lark
-pydub  # Load text with Whisper from videos
-pytube  # Get videos from playlist video
-streamlit
-pydantic==1.10.8 # https://github.com/hwchase17/langchain/issues/7548
-python-dotenv
+# Dépendances principales
+streamlit>=1.28.0
+langchain>=0.0.267
+langchain-openai>=0.0.2
+langchain-community>=0.0.10
+langchain-chroma>=0.0.10
+langchain-core>=0.0.9
+openai>=1.2.0
+chromadb>=0.4.15
 
-# Vector DB
-pinecone-client
-chromadb==0.3.26
-clickhouse-connect  # MyScale
+# Dépendances pour le traitement de documents
+pypdf>=3.16.0
+Pillow>=10.0.0
+python-magic>=0.4.27
+unstructured>=0.10.19
+pdf2image>=1.16.3
+pytesseract>=0.3.10
 
-# Confluence
-atlassian-python-api
-lxml
-markdownify
+# Pour les requêtes HTTP et le parsing
+requests>=2.31.0
+beautifulsoup4>=4.12.2
+markdown>=3.5
+pandas>=2.1.1
 
-# Reranking
-sentence-transformers>=2.2.2
+# Pour gérer la connexion à Atlassian Confluence
+atlassian-python-api>=3.41.1
+
+# Pour la gestion des variables d'environnement
+python-dotenv>=1.0.0

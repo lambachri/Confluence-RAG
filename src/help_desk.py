@@ -1,17 +1,34 @@
 import sys
-import load_db
+import os
 import collections
 import logging
 import json
-import os
 import random
-from typing import List # Added import for List
+from typing import List, Optional, Dict, Any, Union
+from pathlib import Path
+
+# Ajuster le chemin d'importation pour être compatible avec Streamlit Cloud
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+root_dir = current_dir.parent
+if str(root_dir) not in sys.path:
+    sys.path.append(str(root_dir))
+
+# Importation flexible de load_db qui fonctionne en local et sur Streamlit Cloud
+try:
+    import load_db
+except ImportError:
+    try:
+        from src import load_db
+    except ImportError:
+        from . import load_db
+
+# Importations LangChain avec gestion des versions
 from langchain_openai import ChatOpenAI
 from langchain_openai import OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
-from langchain.schema import Document as LangChainDocument # Ensure this is available for type hinting
-from langchain_core.retrievers import BaseRetriever # Ensure this is available
+from langchain_core.documents import Document as LangChainDocument
+from langchain_core.retrievers import BaseRetriever
 
 # Configure le logger pour afficher plus d'informations
 logging.basicConfig(
@@ -28,12 +45,22 @@ if USE_RERANKER:
     try:
         # En mode streamlit, utiliser jina_reranker qui n'a pas de dépendances torch
         if STREAMLIT_MODE:
-            from src.jina_reranker import create_reranker
-            logger.info("Module jina_reranker importé avec succès")
+            try:
+                from src.jina_reranker import create_reranker
+                logger.info("Module jina_reranker importé avec succès")
+            except ImportError:
+                # Essayer l'importation relative si l'importation absolue échoue
+                from .jina_reranker import create_reranker
+                logger.info("Module jina_reranker importé avec succès (importation relative)")
         else:
             # Pour d'autres contextes (CLI, etc.), on peut utiliser le reranker standard
-            from src.reranker import create_safe_reranker
-            logger.info("Module de reranking standard importé avec succès")
+            try:
+                from src.reranker import create_safe_reranker
+                logger.info("Module de reranking standard importé avec succès")
+            except ImportError:
+                # Essayer l'importation relative si l'importation absolue échoue
+                from .reranker import create_safe_reranker
+                logger.info("Module de reranking standard importé avec succès (importation relative)")
     except Exception as e:
         logger.warning(f"Erreur lors de l'import du module de reranking: {e}")
         USE_RERANKER = False
@@ -203,6 +230,7 @@ class HelpDesk():
         self.use_reranker = use_reranker
         
         # Simply use the DataLoader to get the database
+        # Correction de l'importation pour compatibilité avec Streamlit Cloud
         data_loader = load_db.DataLoader()
         self.db = data_loader.set_db(self.embeddings, test_mode=False)
 
@@ -446,7 +474,7 @@ class HelpDesk():
         """Traite une question et renvoie une réponse basée sur la recherche de documents pertinents"""
         logger.info(f"Question reçue: {question}")
         
-        # Sauvegarder la question courante pour référence
+        # Sauvegarder la question courante pour référence dans format_response
         self._current_question = question
         
         # Vérifier si nous avons une mémoire conversationnelle
@@ -1346,3 +1374,4 @@ class HelpDesk():
         if sentence_end != -1 and sentence_end < len(context) - 2:
             context = context[:sentence_end + 1]
         
+        return context

@@ -4,6 +4,7 @@ import shutil
 import os
 import requests
 from typing import List, Dict, Any, Optional
+from pathlib import Path
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import hashlib
@@ -13,12 +14,42 @@ import json
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-sys.path.append('../')
-from src.config import (
-    CONFLUENCE_SPACE_NAME, CONFLUENCE_SPACE_KEY,
-    CONFLUENCE_USERNAME, CONFLUENCE_API_KEY, PERSIST_DIRECTORY
-)
+# Ajuster le chemin d'importation pour être compatible avec Streamlit Cloud
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+root_dir = current_dir.parent
+if str(root_dir) not in sys.path:
+    sys.path.append(str(root_dir))
 
+# Importation flexible de config qui fonctionne à la fois en local et sur Streamlit Cloud
+try:
+    # Essayer l'importation directe (pour Streamlit Cloud)
+    from config import (
+        CONFLUENCE_SPACE_NAME, CONFLUENCE_SPACE_KEY,
+        CONFLUENCE_USERNAME, CONFLUENCE_API_KEY, PERSIST_DIRECTORY
+    )
+except ImportError:
+    try:
+        # Essayer avec le préfixe src (pour développement local)
+        from src.config import (
+            CONFLUENCE_SPACE_NAME, CONFLUENCE_SPACE_KEY,
+            CONFLUENCE_USERNAME, CONFLUENCE_API_KEY, PERSIST_DIRECTORY
+        )
+    except ImportError:
+        try:
+            # Dernier recours: déplacer config.py au niveau racine et l'importer de là
+            sys.path.insert(0, str(Path(__file__).parent.parent))
+            from config import (
+                CONFLUENCE_SPACE_NAME, CONFLUENCE_SPACE_KEY,
+                CONFLUENCE_USERNAME, CONFLUENCE_API_KEY, PERSIST_DIRECTORY
+            )
+        except ImportError:
+            # Fallback avec importation relative
+            from .config import (
+                CONFLUENCE_SPACE_NAME, CONFLUENCE_SPACE_KEY,
+                CONFLUENCE_USERNAME, CONFLUENCE_API_KEY, PERSIST_DIRECTORY
+            )
+
+# Le reste du code reste inchangé
 from langchain_community.document_loaders import ConfluenceLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.text_splitter import MarkdownHeaderTextSplitter

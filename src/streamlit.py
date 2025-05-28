@@ -1,19 +1,65 @@
 # Streamlit
 # Use QARetrieval to find informations about the Octo Confluence
-from venv import logger
-import streamlit as st
-from help_desk import HelpDesk
 import os
 import sys
 import time
 import importlib
-from auth import login_form, logout_user
-from logging import Logger
-sys.path.append('../')
-from src.config import PERSIST_DIRECTORY
-from load_db import DataLoader
+import logging
+from pathlib import Path
+# Importer streamlit_styles pour centraliser les styles CSS
 
-# Configuration de Torch pour éviter le problème avec asyncio et streamlit
+# Ajuster le chemin d'importation pour être compatible avec Streamlit Cloud
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+root_dir = current_dir.parent
+if str(root_dir) not in sys.path:
+    sys.path.append(str(root_dir))
+
+try:
+    from streamlit_styles import load_css
+except ImportError:
+    from src.streamlit_styles import load_css
+except:
+    # Fallback si le module n'existe pas
+    def load_css():
+        return """<style>
+            .main-header {color: #1E88E5; font-size: 2.5rem}
+            .sub-header {color: #424242; font-size: 1.2rem; margin-bottom: 2rem}
+            </style>"""
+
+import streamlit as st
+
+try:
+    from auth import login_form, logout_user
+except ImportError:
+    from src.auth import login_form, logout_user
+
+# Importation flexible de config qui fonctionne à la fois en local et sur Streamlit Cloud
+try:
+    from config import PERSIST_DIRECTORY
+except ImportError:
+    try:
+        from src.config import PERSIST_DIRECTORY
+    except ImportError:
+        from .config import PERSIST_DIRECTORY
+
+try:
+    from load_db import DataLoader
+except ImportError:
+    try:
+        from src.load_db import DataLoader
+    except ImportError:
+        from .load_db import DataLoader
+
+# Importer HelpDesk avec gestion des erreurs d'importation
+try:
+    from help_desk import HelpDesk
+except ImportError:
+    try:
+        from src.help_desk import HelpDesk
+    except ImportError:
+        from .help_desk import HelpDesk
+
+# Configuration pour éviter le problème avec asyncio et streamlit
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 # Utiliser la valeur de USE_RERANKER de l'environnement
 os.environ["USE_RERANKER"] = os.environ.get("USE_RERANKER", "True")
@@ -35,85 +81,8 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS pour améliorer l'apparence et le contraste
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 2.5rem;
-        color: #1E88E5;
-        margin-bottom: 1rem;
-    }
-    .sub-header {
-        font-size: 1.1rem;
-        color: #424242;
-        margin-bottom: 2rem;
-        font-style: italic;
-    }
-    .stTextInput>div>div>input {
-        padding: 0.8rem;
-        font-size: 1.1rem;
-    }
-    .user-bubble {
-        background-color: #E3F2FD;
-        padding: 1rem;
-        border-radius: 15px;
-        margin-bottom: 0.8rem;
-        color: #0D47A1;  /* Texte bleu foncé pour meilleur contraste */
-    }
-    .assistant-bubble {
-        background-color: #F5F5F5;
-        padding: 1rem;
-        border-radius: 15px;
-        margin-bottom: 0.8rem;
-        color: #212121;  /* Texte presque noir pour meilleur contraste */
-        border-left: 3px solid #1E88E5;
-    }
-    .sources-section {
-        font-size: 0.85rem;
-        color: #424242;  /* Gris foncé pour les sources */
-        margin-top: 0.5rem;
-        border-top: 1px solid #E0E0E0;
-        padding-top: 0.5rem;
-        background-color: #FAFAFA;
-    }
-    .typing-indicator {
-        display: inline-block;
-        font-size: 1.2rem;
-        margin-left: 0.4rem;
-        color: #1E88E5;
-    }
-    /* Amélioration de la visibilité des liens dans les sources */
-    .sources-section a {
-        color: #1565C0;
-        text-decoration: underline;
-    }
-    /* Améliorer la visibilité de l'assistant pendant la saisie */
-    .assistant-typing {
-        background-color: #F5F5F5;
-        padding: 1rem;
-        border-radius: 15px;
-        margin-bottom: 0.8rem;
-        color: #616161;
-        border-left: 3px solid #90CAF9;
-    }
-    /* Style pour les éléments markdown dans les réponses */
-    .assistant-bubble ul, .assistant-bubble ol {
-        margin-top: 0.5rem;
-        margin-bottom: 0.5rem;
-        padding-left: 1.5rem;
-    }
-    .assistant-bubble li {
-        margin-bottom: 0.3rem;
-    }
-    .assistant-bubble p {
-        margin-bottom: 0.8rem;
-    }
-    /* Espacement des listes à puces et numérotées */
-    .assistant-bubble ul li, .assistant-bubble ol li {
-        padding-left: 0.5rem;
-    }
-</style>
-""", unsafe_allow_html=True)
+# Charger les styles CSS depuis streamlit_styles
+st.markdown(load_css(), unsafe_allow_html=True)
 
 @st.cache_resource
 def get_model():

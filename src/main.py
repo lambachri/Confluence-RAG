@@ -1,9 +1,9 @@
 # Demo
 if __name__ == '__main__':
-    from help_desk import HelpDesk
     import os
     import sys
     import logging
+    from pathlib import Path
     
     # Configure basic logging
     logging.basicConfig(
@@ -12,9 +12,38 @@ if __name__ == '__main__':
     )
     logger = logging.getLogger('main')
     
-    sys.path.append('../')
-    from src.config import PERSIST_DIRECTORY
-    from load_db import DataLoader
+    # Ajuster le chemin d'importation pour être compatible avec tous les environnements
+    current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+    root_dir = current_dir.parent
+    if str(root_dir) not in sys.path:
+        sys.path.append(str(root_dir))
+    
+    # Importation flexible de HelpDesk
+    try:
+        from help_desk import HelpDesk
+    except ImportError:
+        try:
+            from src.help_desk import HelpDesk
+        except ImportError:
+            from .help_desk import HelpDesk
+    
+    # Importation flexible de config
+    try:
+        from config import PERSIST_DIRECTORY
+    except ImportError:
+        try:
+            from src.config import PERSIST_DIRECTORY
+        except ImportError:
+            from .config import PERSIST_DIRECTORY
+    
+    # Importation flexible de load_db
+    try:
+        from load_db import DataLoader
+    except ImportError:
+        try:
+            from src.load_db import DataLoader
+        except ImportError:
+            from .load_db import DataLoader
     
     # Check if DB exists
     db_exists = os.path.exists(PERSIST_DIRECTORY) and os.listdir(PERSIST_DIRECTORY)

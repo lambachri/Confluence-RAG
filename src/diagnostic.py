@@ -1,13 +1,27 @@
+"""
+Outils de diagnostic pour le chatbot Confluence
+"""
 import os
 import sys
+import logging
+from pathlib import Path
 import json
 import requests
 from pprint import pprint
-import logging
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 import re
 from datetime import datetime
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('diagnostic')
+
+# Ajuster le chemin d'importation pour être compatible avec Streamlit Cloud
+current_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+root_dir = current_dir.parent
+if str(root_dir) not in sys.path:
+    sys.path.append(str(root_dir))
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('diagnostic')
@@ -25,6 +39,124 @@ SPECIFIC_PAGE_IDS = [
     "3758555439", "2384003194", "2640052240", "2722825033", "2639036983", 
     "2384691207", "2756640773"
 ]
+
+def check_page_exists(page_id):
+    """Verify if a page exists and get its title from Confluence API"""
+    url = f"{CONFLUENCE_SPACE_NAME}/rest/api/content/{page_id}?expand=version,title"
+    auth = (CONFLUENCE_USERNAME, CONFLUENCE_API_KEY)
+    
+    try:
+        response = requests.get(url, auth=auth)
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "id": page_id,
+                "exists": True,
+                "title": data.get("title", "Unknown title"),
+                "version": data.get("version", {}).get("number", "Unknown")
+            }
+        else:
+            return {
+                "id": page_id,
+                "exists": False,
+                "status_code": response.status_code,
+                "error": response.text[:100] + "..." if len(response.text) > 100 else response.text
+            }
+    except Exception as e:
+        return {
+            "id": page_id,
+            "exists": False,
+            "error": str(e)
+        }
+
+def verify_pages():
+    """Vérifie les pages Confluence indexées dans la base"""
+    print("=== Diagnostic des pages Confluence ===")
+    
+    # Vérifier si le cache existe
+    cache_file = "confluence_page_cache.json"
+    if not os.path.exists(cache_file):
+        print(f"❌ Fichier de cache {cache_file} introuvable")
+        print("Aucune page Confluence ne semble avoir été indexée.")
+        return
+    
+    try:
+        # Charger le cache
+        with open(cache_file, "r", encoding="utf-8") as f:
+            cache = json.load(f)
+        
+        page_count = len(cache)
+        print(f"✅ {page_count} pages Confluence trouvées dans le cache")
+        
+        # Afficher quelques informations sur les pages
+        print("\nListe des pages indexées:")
+        for i, (page_id, page_data) in enumerate(cache.items()):
+            title = "Titre inconnu"
+            version = page_data.get("version", "Inconnue")
+            
+            # Extraire le titre s'il existe dans les métadonnées
+            if "metadata" in page_data and page_data["metadata"]:
+                if isinstance(page_data["metadata"], list) and page_data["metadata"]:
+                    metadata = page_data["metadata"][0]
+                    title = metadata.get("title", f"Page {page_id}")
+                else:
+                    title = page_data["metadata"].get("title", f"Page {page_id}")
+            
+            print(f"{i+1}. {title} (ID: {page_id}) - Version {version}")
+            
+            # Limiter l'affichage pour éviter de surcharger le terminal
+            if i >= 19 and page_count > 20:
+                print(f"...et {page_count - 20} autres pages")
+                break
+        
+    except Exception as e:
+        print(f"❌ Erreur lors de la lecture du cache: {e}")
+        return
+
+def check_vector_database():
+    """Vérifie l'état de la base vectorielle"""
+    print("=== Diagnostic de la base vectorielle ===")
+    
+    # Importer les dépendances de manière flexible
+    try:
+        from config import PERSIST_DIRECTORY
+    except ImportError:
+        try:
+            from src.config import PERSIST_DIRECTORY
+        except ImportError:
+            try:
+                from .config import PERSIST_DIRECTORY
+            except ImportError:
+                print("❌ Impossible d'importer le module config")
+                return
+    
+    # Vérifier si le répertoire existe
+    if not os.path.exists(PERSIST_DIRECTORY):
+        print(f"❌ Répertoire de la base vectorielle introuvable: {PERSIST_DIRECTORY}")
+        return
+    
+    # Vérifier le contenu du répertoire
+    files = os.listdir(PERSIST_DIRECTORY)
+    if not files:
+        print(f"❌ Le répertoire {PERSIST_DIRECTORY} existe mais est vide")
+        return
+    
+    print(f"✅ Base vectorielle trouvée dans {PERSIST_DIRECTORY}")
+    print(f"Fichiers présents: {', '.join(files)}")
+    
+    # Tenter de charger la base vectorielle
+    try:
+        from langchain_openai import OpenAIEmbeddings
+        from langchain_chroma import Chroma
+        
+        embeddings = OpenAIEmbeddings()
+        db = Chroma(persist_directory=PERSIST_DIRECTORY, embedding_function=embeddings)
+        
+        # Compter les documents
+        doc_count = db._collection.count()
+        print(f"✅ Base vectorielle chargée avec succès. {doc_count} documents indexés.")
+    except Exception as e:
+        print(f"❌ Erreur lors du chargement de la base vectorielle: {e}")
 
 def check_page_exists(page_id):
     """Verify if a page exists and get its title from Confluence API"""
